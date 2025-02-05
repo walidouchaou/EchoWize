@@ -1,0 +1,9 @@
+Metadata-Version: 2.2
+Name: EchoWize
+Version: 0.1
+Requires-Dist: flask==3.0.0
+Requires-Dist: python-dotenv==1.0.0
+Requires-Dist: google-search-results==2.4.2
+Requires-Dist: requests==2.31.0
+Requires-Dist: minio==7.1.10
+Dynamic: requires-dist
