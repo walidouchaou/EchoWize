@@ -2,6 +2,8 @@ import streamlit as st
 import duckdb
 import plotly.express as px
 import requests
+import plotly.graph_objects as go
+import time
 
 # Configuration de la page avec un thème sombre
 st.set_page_config(
@@ -13,118 +15,367 @@ st.set_page_config(
 # Styles personnalisés avec un thème sombre professionnel
 st.markdown("""
     <style>
-    /* Thème sombre global */
+    /* Styles globaux pour le texte */
+    .main *, 
+    .element-container, 
+    .stMarkdown,
+    .stText,
+    p, h1, h2, h3, h4, h5, h6,
+    .stTextInput > label,
+    .stSelectbox > label,
+    .stMultiSelect > label {
+        color: white !important;
+    }
+
+    /* Override pour les éléments Streamlit spécifiques */
+    .css-1dp5vir,
+    .css-81oif8,
+    .css-10trblm,
+    .css-1aehpvj,
+    .css-1q8dd3e,
+    .css-1p0hnsx,
+    .css-145kmo2,
+    .css-1b0udgb {
+        color: white !important;
+    }
+
+    /* Style pour les inputs */
+    .stTextInput input,
+    .stSelectbox select,
+    .stMultiSelect select {
+        color: white !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* Style pour les widgets */
+    .stSlider,
+    .stCheckbox,
+    .stRadio {
+        color: white !important;
+    }
+
+    /* Style pour les graphiques */
+    .js-plotly-plot .plotly .gtitle,
+    .js-plotly-plot .plotly .xtitle,
+    .js-plotly-plot .plotly .ytitle {
+        fill: white !important;
+    }
+
+    .js-plotly-plot .plotly .xtick text,
+    .js-plotly-plot .plotly .ytick text {
+        fill: white !important;
+    }
+
+    /* Style pour les tableaux */
+    .dataframe {
+        color: white !important;
+    }
+
+    .dataframe th {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+    }
+
+    .dataframe td {
+        color: white !important;
+    }
+
+    /* Thème sombre global avec animation de fond */
     .main {
-        background-color: #1a1a1a;
+        background: linear-gradient(-45deg, #1a1a1a, #2d2d2d, #1f1f1f, #2a2a2a);
+        background-size: 400% 400%;
+        animation: gradient 15s ease infinite;
         color: #ffffff !important;
     }
     
-    /* En-tête principal */
-    .main-header {
-        font-size: 2.8rem;
-        font-weight: 700;
-        background: linear-gradient(120deg, #4CAF50, #2196F3);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-align: center;
-        margin: 2rem 0;
-        padding: 1rem;
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
     
-    /* Style des métriques */
+    /* En-tête principal avec animation */
+    .main-header {
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(120deg, #4CAF50, #2196F3, #9C27B0);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shine 3s linear infinite;
+        text-align: center;
+        margin: 2rem 0;
+        padding: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    
+    @keyframes shine {
+        to { background-position: 200% center; }
+    }
+    
+    /* Style des métriques avec hover effect */
     .metric-container {
         background: linear-gradient(145deg, #2d2d2d, #353535);
-        padding: 1.5rem;
-        border-radius: 10px;
+        padding: 2rem;
+        border-radius: 15px;
         text-align: center;
         border: 1px solid #404040;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .metric-container:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
     }
     
     .metric-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #4CAF50;
-        margin-bottom: 0.5rem;
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(45deg, #4CAF50, #2196F3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.8rem;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
     }
     
     .metric-label {
         color: #ffffff;
-        font-size: 1rem;
-        font-weight: 500;
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
-    /* Override Streamlit's default text color */
-    .css-1dp5vir, .css-81oif8, .css-10trblm {
-        color: #ffffff !important;
-    }
-    
-    /* Override pour les graphiques */
-    .js-plotly-plot .plotly .gtitle {
-        fill: #ffffff !important;
-    }
-    
-    /* Conteneurs de cartes */
+    /* Style des cartes avec animation au hover */
     .card-container {
-        background: #2d2d2d;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1.5rem;
-        border: 1px solid #3d3d3d;
+        background: rgba(45, 45, 45, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
     }
     
-    /* Style des graphiques */
-    .chart-container {
-        background: #2d2d2d;
-        padding: 1.5rem;
-        border-radius: 12px;
-        border: 1px solid #3d3d3d;
+    .card-container:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
     }
     
-    /* Style des onglets */
+    /* Style des onglets modernisé */
     .stTabs [data-baseweb="tab-list"] {
-        background-color: #2d2d2d;
-        padding: 0.5rem;
-        border-radius: 8px;
-        border: 1px solid #3d3d3d;
+        background: rgba(45, 45, 45, 0.9);
+        backdrop-filter: blur(10px);
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
     }
     
     .stTabs [data-baseweb="tab"] {
         color: #ffffff;
-        background-color: #353535;
-        border-radius: 6px;
-        padding: 0.5rem 1rem;
-        margin-right: 0.5rem;
+        background: linear-gradient(145deg, #353535, #2d2d2d);
+        border-radius: 8px;
+        padding: 0.8rem 1.5rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
     }
     
-    /* Style des avis */
+    .stTabs [data-baseweb="tab"]:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(145deg, #4CAF50, #2196F3);
+    }
+    
+    /* Style des avis avec animation */
     .review-card {
-        background: #2d2d2d;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-bottom: 1rem;
+        background: rgba(45, 45, 45, 0.9);
+        backdrop-filter: blur(10px);
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 1.5rem;
         border-left: 4px solid #4CAF50;
+        transition: all 0.3s ease;
+        animation: slideIn 0.5s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .review-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
     }
     
     .review-header {
         color: #ffffff;
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 1.2rem;
+        letter-spacing: 1px;
     }
     
     .review-content {
-        color: #b0b0b0;
-        line-height: 1.6;
+        color: #e0e0e0;
+        line-height: 1.8;
+        font-size: 1.1rem;
     }
     
     .review-stats {
         display: flex;
         justify-content: space-between;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Personnalisation des boutons */
+    .stButton button {
+        background: linear-gradient(45deg, #4CAF50, #2196F3);
+        color: white;
+        border: none;
+        padding: 0.8rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+    }
+    
+    /* Animation de chargement personnalisée */
+    .stSpinner {
+        animation: rotate 2s linear infinite;
+    }
+    
+    @keyframes rotate {
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Style du conteneur principal */
+    .main-container {
+        background: rgba(31, 41, 55, 0.8);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 2rem auto;
+        max-width: 1200px;
+    }
+    
+    /* Style du logo animé */
+    .logo-container {
+        text-align: center;
+        margin-bottom: 2rem;
+        animation: fadeInDown 1s ease-out;
+    }
+    
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Style du formulaire */
+    .search-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-top: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        animation: fadeIn 0.8s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    /* Style du bouton */
+    .custom-button {
+        background: linear-gradient(135deg, #4CAF50, #2196F3);
+        color: white;
+        padding: 0.8rem 2rem;
+        border-radius: 10px;
+        border: none;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        transition: all 0.3s ease;
+        width: 100%;
         margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid #3d3d3d;
+    }
+    
+    .custom-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+    }
+    
+    /* Style de la barre de progression */
+    .progress-container {
+        margin: 2rem 0;
+        position: relative;
+    }
+    
+    .progress-bar {
+        height: 6px;
+        background: linear-gradient(90deg, #4CAF50, #2196F3);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+    
+    .progress-label {
+        position: absolute;
+        top: -25px;
+        right: 0;
+        color: white;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    /* Animation de chargement */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .loading-text {
+        color: white;
+        text-align: center;
+        margin-top: 1rem;
+        animation: pulse 1.5s infinite;
+        font-weight: 500;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -146,7 +397,7 @@ def afficher_dashboard():
     con = duckdb.connect('echowize.db')
     
     # Titre principal
-    st.markdown('<h1 class="main-header">EchoWize Analytics</h1>', unsafe_allow_html=True)
+    ##st.markdown('<h1 class="main-header">EchoWize Analytics</h1>', unsafe_allow_html=True)
     
     # Métriques principales
     with st.container():
@@ -207,20 +458,25 @@ def afficher_dashboard():
                 SELECT rating, COUNT(*) as count
                 FROM conso_reviews
                 GROUP BY rating
-                ORDER BY rating ASC
+                ORDER BY rating DESC
             """).fetchdf()
             
-            fig = px.pie(ratings_data, values='count', names='rating',
-                         title=' ',
-                         color_discrete_sequence=[
-                             '#FF0000',  # Note 1 - Rouge vif
-                             '#FF8C00',  # Note 2 - Orange
-                             '#FFD700',  # Note 3 - Jaune doré
-                             '#90EE90',  # Note 4 - Vert clair
-                             '#008000'   # Note 5 - Vert foncé
-                         ])
+            colors = {
+                5: '#00FF00',  # Vert
+                4: '#7FFF00',  # Vert clair
+                3: '#FFFF00',  # Jaune
+                2: '#FF7F00',  # Orange
+                1: '#FF0000'   # Rouge
+            }
+            
+            fig = go.Figure(data=[go.Pie(
+                labels=ratings_data['rating'],
+                values=ratings_data['count'],
+                marker_colors=[colors[int(rating)] for rating in ratings_data['rating']]
+            )])
             
             fig.update_layout(
+                title=' ',
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font_color='#ffffff',
@@ -255,7 +511,7 @@ def afficher_dashboard():
             st.markdown('</div>', unsafe_allow_html=True)
 
     with tab2:
-        st.subheader("Évolution dans le temps")
+        st.subheader("📈 Évolution dans le temps")
         time_data = con.execute("""
             SELECT DATE_TRUNC('month', iso_date) as month, 
                    AVG(rating) as avg_rating,
@@ -302,7 +558,7 @@ def afficher_dashboard():
             st.markdown(f"""
                 <div class="review-card">
                     <div class="review-header">
-                        📝 Avis #{review['review_id']} | {review['iso_date'].strftime('%d/%m/%Y')} | {'⭐' * int(review['rating'])}
+                        📝 Avis # {review['iso_date'].strftime('%d/%m/%Y')} | {'⭐' * int(review['rating'])}
                     </div>
                     <div class="review-content">
                         {review['snippet']}
@@ -318,17 +574,169 @@ def afficher_dashboard():
     con.close()
 
 def main():
-    afficher_dashboard()
-    with st.form("restaurant_form"):
-        st.markdown('<h1 class="main-header">EchoWize Analytics</h1>', unsafe_allow_html=True)
-        restaurant_name = st.text_input("Nom du restaurant")
-        submitted = st.form_submit_button("Analyser")
+    # Style personnalisé pour le conteneur principal
+    st.markdown("""
+        <style>
+        /* Style du conteneur principal */
+        .main-container {
+            background: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 2rem auto;
+            max-width: 1200px;
+        }
         
+        /* Style du logo animé */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 1s ease-out;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Style du formulaire */
+        .search-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Style du bouton */
+        .custom-button {
+            background: linear-gradient(135deg, #4CAF50, #2196F3);
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        
+        .custom-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+        }
+        
+        /* Style de la barre de progression */
+        .progress-container {
+            margin: 2rem 0;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-label {
+            position: absolute;
+            top: -25px;
+            right: 0;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        /* Animation de chargement */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .loading-text {
+            color: white;
+            text-align: center;
+            margin-top: 1rem;
+            animation: pulse 1.5s infinite;
+            font-weight: 500;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    
+    # Logo et titre
+    st.markdown("""
+        <div class="logo-container">
+            <h1 class="main-header">EchoWize Analytics</h1>
+            <p style="color: #B0B0B0; font-size: 1.2rem; margin-top: 0.5rem;">
+                Analysez et optimisez votre réputation en ligne
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+    # Formulaire de recherche
+    with st.form("restaurant_form"):
+        restaurant_name = st.text_input("Nom du restaurant", 
+                                      placeholder="Ex: Le Petit Bistrot",
+                                      help="Entrez le nom exact du restaurant à analyser")
+        
+        # Bouton personnalisé
+        submitted = st.form_submit_button("Analyser", 
+                                        help="Cliquez pour lancer l'analyse")
+        st.markdown('</div>', unsafe_allow_html=True)
+
         if submitted and restaurant_name:
-            with st.spinner('Récupération et analyse des données en cours...'):
-                resultats = call_api(restaurant_name)
-                if resultats:
-                    afficher_dashboard()
+            # Animation de chargement personnalisée
+            progress_text = "Analyse en cours..."
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            # Étapes avec leur durée relative (total = 60 secondes)
+            etapes = [
+                ("Récupération des données...", 15),  # 15 secondes
+                ("Analyse des avis...", 25),          # 25 secondes
+                ("Génération des insights...", 15),   # 15 secondes
+                ("Finalisation...", 5)                # 5 secondes
+            ]
+            
+            temps_total = 120  # 60 secondes au total
+            for etape, duree in etapes:
+                status_text.markdown(f'<div class="loading-text">{etape}</div>', unsafe_allow_html=True)
+                iterations = 20  # Nombre d'étapes pour une progression fluide
+                for i in range(iterations):
+                    # Calcul du progrès global
+                    progress_precedent = sum([d for _, d in etapes[:etapes.index((etape, duree))]])
+                    progress = (progress_precedent + (i + 1) * duree / iterations) / temps_total
+                    progress_bar.progress(progress)
+                    time.sleep(duree / iterations)  # Divise la durée de l'étape en iterations égales
+
+            # Appel API et affichage des résultats
+            resultats = call_api(restaurant_name)
+            if resultats:
+                progress_bar.empty()
+                status_text.empty()
+                afficher_dashboard()
+            else:
+                st.error("Aucun résultat trouvé pour ce restaurant.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
