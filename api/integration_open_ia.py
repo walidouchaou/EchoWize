@@ -12,8 +12,6 @@ class integrationOpenIA :
         self.client = OpenAI(api_key=self.OPENAI_API_KEY)
     
     def get_comment_negative(self):
-        #self.con.execute("ALTER TABLE negative_reviews ADD COLUMN recommendation TEXT")
-        #self.con.execute("ALTER TABLE negative_reviews ADD COLUMN review_id UUID DEFAULT UUID()")
         data = self.con.sql("SELECT review_id, snippet FROM negative_reviews").fetchall()
         return data
 
