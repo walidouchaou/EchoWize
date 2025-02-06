@@ -12,7 +12,7 @@ EchoWise est une plateforme innovante d'analyse des avis clients, spécialement 
 - **Automatisation** : Traitement efficace des grands volumes de données
 
 ## Architecture Technique 🔧
-![archi_echowise](ARCHI_EchoWize .png)
+![archi_echowise](ARCHI_EchoWize.png)
 
 ### Technologies Utilisées
 
