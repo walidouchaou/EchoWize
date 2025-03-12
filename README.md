@@ -12,7 +12,7 @@ EchoWise est une plateforme innovante d'analyse des avis clients, spécialement 
 - **Automatisation** : Traitement efficace des grands volumes de données
 
 ## Architecture Technique 🔧
-![archi_echowise](ARCHI_EchoWize.png)
+![archi_echowise](img/ARCHI_EchoWize.png)
 
 ### Technologies Utilisées
 
@@ -44,6 +44,8 @@ Créer un fichier `.env` avec :
 ```
 GOOGLE_MAPS_API_KEY=votre_clé
 OPENAI_API_KEY=votre_clé
+MINIO_SECRET_KEY = votre_clé
+MINIO_ACCESS_KEY = votre_clé
 ```
 
 4. Lancer avec Docker :
@@ -80,6 +82,12 @@ EchoWize/
    - Interface utilisateur intuitive avec Streamlit
    - Tableaux de bord en temps réel
    - Rapports personnalisables
+
+## Dashboard 📊
+
+![dashboard](img/dash1.png)
+![dashboard](img/dash2.png)
+![dashboard](img/dash3.png)
 
 ## Contribution 🤝
 
